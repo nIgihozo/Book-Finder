@@ -1,0 +1,6 @@
+# Ignore environment variables
+.env
+
+# Ignore any config files with API keys
+config.js
+
