@@ -128,3 +128,109 @@
 
 <div id="loading" style="display:none;">Loading...</div>
 <div id="results"></div>
+
+<script type="module">
+    import { API_KEY } from './config.js';
+  let books = [];
+
+  async function searchBooks() {
+    const query = document.getElementById('searchInput').value;
+    const loading = document.getElementById('loading');
+    const resultsDiv = document.getElementById('results');
+
+    // Show spinner
+    loading.style.display = 'block';
+    resultsDiv.innerHTML = '';
+
+    try {
+      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&key=${API_KEY}`);
+      const data = await res.json();
+
+      if (!data.items || data.items.length === 0) {
+      resultsDiv.innerHTML = "<p>No books found. Try another search.</p>";
+      return; // stop here so renderBooks() is not called
+    }
+
+      books = data.items || [];
+      renderBooks();
+    } catch (error) {
+      resultsDiv.innerHTML = "<p>Error No results. Please try again later.</p>";
+      console.error(error);
+    } finally {
+      // Hide spinner
+      loading.style.display = 'none';
+    }
+  }
+
+  function renderBooks() {
+    const sortOption = document.getElementById('sort').value;
+    const filterText = document.getElementById('filter').value.toLowerCase();
+    let results = [...books];
+
+    // Filter by author
+    if (filterText) {
+      results = results.filter(book => {
+        const authors = book.volumeInfo.authors?.join(', ').toLowerCase() || '';
+        return authors.includes(filterText);
+      });
+    }
+
+    // Sort
+    if (sortOption === 'date') {
+      results.sort((a, b) => new Date(b.volumeInfo.publishedDate) - new Date(a.volumeInfo.publishedDate));
+    } else if (sortOption === 'pages') {
+      results.sort((a, b) => (b.volumeInfo.pageCount || 0) - (a.volumeInfo.pageCount || 0));
+    }
+
+    // Render results
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = results.map(book => {
+      const info = book.volumeInfo;
+      return `
+        <div class="book">
+          <img src="${info.imageLinks?.thumbnail || ''}" alt="Cover">
+          <h3>${info.title}</h3>
+          <p><strong>Author:</strong> ${info.authors?.join(', ') || 'Unknown Author'}</p>
+          <p><strong>Published:</strong> ${info.publishedDate || 'Unknown'}</p>
+          <p><strong>Pages:</strong> ${info.pageCount || 'N/A'}</p>
+          <p>${info.description?.slice(0, 200) || 'No description available.'}</p>
+          <p><a href="${info.infoLink}" target="_blank">Read More</a></p>
+          <p><button onclick="addToFavorites('${info.title}', '${info.authors?.join(', ')}', '${info.infoLink}')">⭐ Add to Favorites</button></p>
+        </div>
+      `;
+    }).join('') || "<p>No books found. Try another search.</p>";
+  }
+
+  function addToFavorites(title, author, link) {
+  const user = localStorage.getItem('bookFinderUser') || 'guest';
+  const favoritesKey = `favorites_${user}`;
+  const existing = JSON.parse(localStorage.getItem(favoritesKey)) || [];
+
+  // Avoid duplicates
+  if (existing.some(book => book.title === title)) {
+    alert("Already in favorites.");
+    return;
+  }
+
+  existing.push({ title, author, link });
+  localStorage.setItem(favoritesKey, JSON.stringify(existing));
+  alert("Book added to favorites!");
+}
+
+  // Auto-refresh results when sort/filter changes
+  document.getElementById('sort').addEventListener('change', renderBooks);
+  document.getElementById('filter').addEventListener('input', renderBooks);
+
+  // Show welcome message
+  const user = localStorage.getItem('bookFinderUser');
+  document.getElementById('welcomeUser').innerText =
+    user === 'guest' ? "Welcome, Guest" : `Welcome, ${user}`;
+
+
+  // Auto-refresh results when sort/filter changes
+  document.getElementById('sort').addEventListener('change', renderBooks);
+  document.getElementById('filter').addEventListener('input', renderBooks);
+</script>
+
+</body>
+</html>
