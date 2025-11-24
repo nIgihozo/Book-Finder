@@ -96,4 +96,10 @@ School infrastructure team for providing servers and load balancer setup.
 
 Open-source community for documentation and troubleshooting resources.
 
-### Demo Videos
+### Demo Video
+- Demo Video:
+  
+### Web server links
+- Link 1 : http://3.84.38.154/ (Web-server 01)
+- Link 2 : http://3.87.54.183/ (Web-server 02)
+  
