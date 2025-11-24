@@ -84,6 +84,8 @@ API Key Security: Avoided exposing keys by using .gitignore and manual server-si
 Deployment Errors: Fixed permission issues in /var/www by using sudo and adjusting ownership.
 
 Load Balancer Access: Couldn’t SSH into the school-managed LB, so verified functionality via HTTP and logs.
+# Command used
+- sudo tail -f /var/log/nginx/access.log
 
 Deadline Pressure: Streamlined deployment with GitHub + Nginx configs to minimize manual steps.
 
@@ -97,9 +99,9 @@ School infrastructure team for providing servers and load balancer setup.
 Open-source community for documentation and troubleshooting resources.
 
 ### Demo Video
-- Demo Video:
+- Demo Video: https://youtu.be/eFQ4ngOELJQ?si=v-9YlwZDZwbXdNUU
   
 ### Web server links
-- Link 1 : http://3.84.38.154/ (Web-server 01)
-- Link 2 : http://3.87.54.183/ (Web-server 02)
+- Link 1 : http://3.84.38.154/  (Web-server 01)
+- Link 2 : http://3.87.54.183/  (Web-server 02)
   
