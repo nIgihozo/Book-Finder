@@ -84,7 +84,7 @@ API Key Security: Avoided exposing keys by using .gitignore and manual server-si
 Deployment Errors: Fixed permission issues in /var/www by using sudo and adjusting ownership.
 
 Load Balancer Access: Couldn’t SSH into the school-managed LB, so verified functionality via HTTP and logs.
-# Command used
+#### Command used to check if load balancer is working
 - sudo tail -f /var/log/nginx/access.log
 
 Deadline Pressure: Streamlined deployment with GitHub + Nginx configs to minimize manual steps.
