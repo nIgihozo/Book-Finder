@@ -49,7 +49,7 @@
   <p id="welcomeUser"></p>
   <div id="favoritesList"></div>
 
-  <script>
+<script>
   const user = localStorage.getItem('bookFinderUser') || 'guest';
   const favoritesKey = `favorites_${user}`;
   const favorites = JSON.parse(localStorage.getItem(favoritesKey)) || [];
@@ -59,20 +59,32 @@
     user === 'guest' ? "You are browsing as Guest. Favorites are not saved permanently." : `Favorites for ${user}`;
 
   const container = document.getElementById('favoritesList');
-  container.innerHTML = favorites.map(book => `
-    <div class="book">
-      <h3>${book.title}</h3>
-      <p><strong>Author:</strong> ${book.author}</p>
-      <p><a href="${book.link}" target="_blank">Read More</a></p>
-    </div>
-  `).join('') || "<p>No favorites saved yet.</p>";
+  
+  // Render favorites list
+  function renderFavorites() {
+    if (favorites.length === 0) {
+      container.innerHTML = "<p>No favorites saved yet.</p>";
+      return;
+    }
+
+    container.innerHTML = favorites
+      .map((book, index) => `
+        <div class="book">
+          <h3>${book.title}</h3>
+          <p><strong>Author:</strong> ${book.author}</p>
+          <p><a href="${book.link}" target="_blank">Read More</a></p>
+          <button onclick="removeFavorite(${index})">Remove</button>
+        </div>
+      `)
+      .join('');
+  }
 
  // Removing books from your favorites
    function removeFavorite(index) {
     favorites.splice(index, 1);
     localStorage.setItem(favoritesKey, JSON.stringify(favorites));
     renderFavorites();
-    alert("Book removed from favorites.");
+    alert("Are you sure you want to remove this book from favorites.");
   }
 
   // Initial render
@@ -81,3 +93,4 @@
 
 </body>
 </html>
+
