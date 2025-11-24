@@ -117,7 +117,7 @@
   <!-- Text inputs -->
     <input type="text" id="filter" placeholder="Filter by author...">
 
-    <button onclick="searchBooks()">SEARCH</button>
+    <button id="searchBtn">SEARCH</button>
   </div>
 </div>
 
@@ -129,8 +129,9 @@
 <div id="loading" style="display:none;">Loading...</div>
 <div id="results"></div>
 
-<script type="module">
-    import { API_KEY } from './config.js';
+
+  <script type="module">
+    import API_KEY from './config.js';
   let books = [];
 
   async function searchBooks() {
@@ -162,47 +163,84 @@
     }
   }
 
+  // Attach the function to the button
+  document.getElementById("searchBtn").addEventListener("click", searchBooks);
+
   function renderBooks() {
-    const sortOption = document.getElementById('sort').value;
-    const filterText = document.getElementById('filter').value.toLowerCase();
-    let results = [...books];
+  const sortOption = document.getElementById('sort').value;
+  const filterText = document.getElementById('filter').value.toLowerCase();
+  let results = [...books];
 
-    // Filter by author
-    if (filterText) {
-      results = results.filter(book => {
-        const authors = book.volumeInfo.authors?.join(', ').toLowerCase() || '';
-        return authors.includes(filterText);
-      });
-    }
-
-    // Sort
-    if (sortOption === 'date') {
-      results.sort((a, b) => new Date(b.volumeInfo.publishedDate) - new Date(a.volumeInfo.publishedDate));
-    } else if (sortOption === 'pages') {
-      results.sort((a, b) => (b.volumeInfo.pageCount || 0) - (a.volumeInfo.pageCount || 0));
-    }
-
-    // Render results
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = results.map(book => {
-      const info = book.volumeInfo;
-      return `
-        <div class="book">
-          <img src="${info.imageLinks?.thumbnail || ''}" alt="Cover">
-          <h3>${info.title}</h3>
-          <p><strong>Author:</strong> ${info.authors?.join(', ') || 'Unknown Author'}</p>
-          <p><strong>Published:</strong> ${info.publishedDate || 'Unknown'}</p>
-          <p><strong>Pages:</strong> ${info.pageCount || 'N/A'}</p>
-          <p>${info.description?.slice(0, 200) || 'No description available.'}</p>
-          <p><a href="${info.infoLink}" target="_blank">Read More</a></p>
-          <p><button onclick="addToFavorites('${info.title}', '${info.authors?.join(', ')}', '${info.infoLink}')">⭐ Add to Favorites</button></p>
-        </div>
-      `;
-    }).join('') || "<p>No books found. Try another search.</p>";
+  // Filter by author
+  if (filterText) {
+    results = results.filter(book => {
+      const authors = book.volumeInfo.authors?.join(', ').toLowerCase() || '';
+      return authors.includes(filterText);
+    });
   }
+
+  // Sort
+  if (sortOption === 'date') {
+    results.sort((a, b) => new Date(b.volumeInfo.publishedDate) - new Date(a.volumeInfo.publishedDate));
+  } else if (sortOption === 'pages') {
+    results.sort((a, b) => (b.volumeInfo.pageCount || 0) - (a.volumeInfo.pageCount || 0));
+  }
+
+  // Render results
+  const resultsDiv = document.getElementById('results');
+  resultsDiv.innerHTML = results.map(book => {
+    const info = book.volumeInfo;
+    return `
+      <div class="book">
+        <img src="${info.imageLinks?.thumbnail || ''}" alt="Cover">
+        <h3>${info.title}</h3>
+        <p><strong>Author:</strong> ${info.authors?.join(', ') || 'Unknown Author'}</p>
+        <p><strong>Published:</strong> ${info.publishedDate || 'Unknown'}</p>
+        <p><strong>Pages:</strong> ${info.pageCount || 'N/A'}</p>
+        <p>${info.description?.slice(0, 200) || 'No description available.'}</p>
+        <p><a href="${info.infoLink}" target="_blank">Read More</a></p>
+        <p><button class="favoriteBtn"
+                   data-title="${info.title}"
+                   data-author="${info.authors?.join(', ')}"
+                   data-link="${info.infoLink}">
+          ⭐ Add to Favorites
+        </button></p>
+      </div>
+    `;
+  }).join('') || "<p>No books found. Try another search.</p>";
+
+  //  Attach event listeners to the new buttons
+  document.querySelectorAll(".favoriteBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const title = btn.dataset.title;
+      const author = btn.dataset.author;
+      const link = btn.dataset.link;
+      addToFavorites(title, author, link);
+    });
+  });
+}
+
 
   function addToFavorites(title, author, link) {
   const user = localStorage.getItem('bookFinderUser') || 'guest';
+
+  function addToFavorites(title, author, link) {
+  const user = localStorage.getItem('bookFinderUser') || 'guest';
+
+
+  const favoritesKey = `favorites_${user}`;
+  const existing = JSON.parse(localStorage.getItem(favoritesKey)) || [];
+
+  if (existing.some(book => book.title === title)) {
+    alert("Already in favorites.");
+    return;
+  }
+
+  existing.push({ title, author, link });
+  localStorage.setItem(favoritesKey, JSON.stringify(existing));
+  alert("Book added to favorites!");
+}
+
   const favoritesKey = `favorites_${user}`;
   const existing = JSON.parse(localStorage.getItem(favoritesKey)) || [];
 
@@ -234,3 +272,4 @@
 
 </body>
 </html>
+
