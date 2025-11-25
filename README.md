@@ -81,18 +81,45 @@ Google Books API Official docs: https://developers.google.com/books Used to fetc
 ###  Challenges & Solutions
 API Key Security: Avoided exposing keys by using .gitignore and manual server-side config.
 
-Deployment Errors: Fixed permission issues in /var/www by using sudo and adjusting ownership.
+- Deployment Errors: Fixed permission issues in /var/www by using sudo and adjusting ownership.
 
-Load Balancer Access: Couldn’t SSH into the school-managed LB, so verified functionality via HTTP and logs.
-#### Command used to check if load balancer is working
-- sudo tail -f /var/log/nginx/access.log
+- On the Load Balancer
+Configured HAProxy to distribute traffic between web-01 and web-02 using round‑robin:
 
-Deadline Pressure: Streamlined deployment with GitHub + Nginx configs to minimize manual steps.
+haproxy
+frontend bookfinder-frontend
+    bind *:80
+    mode http
+    default_backend bookfinder-backend
+
+backend bookfinder-backend
+    balance roundrobin
+    server web-01 <web01_ip>:80 check
+    server web-02 <web02_ip>:80 check
+HAProxy listens on port 80 and forwards requests to the backend servers. This ensures high availability and balanced traffic distribution.
+
+Verification
+Load Balancer Access: Couldn’t SSH into the school‑managed LB externally, so functionality was verified directly on the server via HTTP and logs.
+
+Commands used to check if load balancer is working
+bash
+curl -I http://localhost
+Output alternates between:
+
+Code
+x-served-by: 6904-web-01
+x-served-by: 6904-web-02
+
+- Deadline Pressure: Streamlined deployment with GitHub + HAProxy configs to minimize manual steps.
+- Backend servers (web-01, web-02) serve the Book Finder app via Nginx.
+- HAProxy handles load balancing at the LB layer.
 
 ### Credits
 Google Books API developers for providing free access to book data.
 
-Nginx for load balancing and serving static files.
+HAProxy for load balancing and traffic distribution.
+
+Nginx on backend servers for serving static files.
 
 School infrastructure team for providing servers and load balancer setup.
 
