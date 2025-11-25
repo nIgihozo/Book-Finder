@@ -59,29 +59,6 @@ Restart Nginx:
 bash
 sudo nginx -t
 sudo systemctl restart nginx
-On the Load Balancer
-Configure Nginx to proxy traffic to web01 and web02:
-
-nginx
-upstream bookfinder_backend {
-  server <web01_ip>;
-  server <web02_ip>;
-}
-
-server {
-  listen 80;
-  server_name <load_balancer_ip>;
-  location / {
-    proxy_pass http://bookfinder_backend;
-  }
-}
-###  APIs Used
-Google Books API Official docs: https://developers.google.com/books Used to fetch book data by title, author, or keyword.
-
-###  Challenges & Solutions
-API Key Security: Avoided exposing keys by using .gitignore and manual server-side config.
-
-- Deployment Errors: Fixed permission issues in /var/www by using sudo and adjusting ownership.
 
 - On the Load Balancer
 Configured HAProxy to distribute traffic between web-01 and web-02 using round‑robin:
@@ -98,7 +75,15 @@ backend bookfinder-backend
     server web-02 <web02_ip>:80 check
 HAProxy listens on port 80 and forwards requests to the backend servers. This ensures high availability and balanced traffic distribution.
 
-Verification
+###  APIs Used
+Google Books API Official docs: https://developers.google.com/books Used to fetch book data by title, author, or keyword.
+
+###  Challenges & Solutions
+- API Key Security: Avoided exposing keys by using .gitignore and manual server-side config.
+
+- Deployment Errors: Fixed permission issues in /var/www by using sudo and adjusting ownership.
+
+- On the Load Balancer refuse to run in the web browser
 Load Balancer Access: Couldn’t SSH into the school‑managed LB externally, so functionality was verified directly on the server via HTTP and logs.
 
 Commands used to check if load balancer is working
@@ -106,11 +91,30 @@ bash
 curl -I http://localhost
 Output alternates between:
 
-Code
-x-served-by: 6904-web-01
+#### Code
+ubuntu@6904-lb-01:~$ curl -I http://localhost
+HTTP/1.1 200 OK
+server: nginx/1.18.0 (Ubuntu)
+date: Tue, 25 Nov 2025 22:54:01 GMT
+content-type: text/html
+content-length: 612
+last-modified: Sat, 08 Nov 2025 09:18:25 GMT
+etag: "690f0ae1-264"
 x-served-by: 6904-web-02
+accept-ranges: bytes
 
-- Deadline Pressure: Streamlined deployment with GitHub + HAProxy configs to minimize manual steps.
+ubuntu@6904-lb-01:~$ curl -I http://localhost
+HTTP/1.1 200 OK
+server: nginx/1.18.0 (Ubuntu)
+date: Tue, 25 Nov 2025 22:54:07 GMT
+content-type: text/html
+content-length: 30
+last-modified: Fri, 07 Nov 2025 13:10:30 GMT
+etag: "690defc6-1e"
+x-served-by: 6904-web-01
+accept-ranges: bytes
+
+- Deadline Pressure: Streamlined deployment to servers + HAProxy configs to minimize manual steps.
 - Backend servers (web-01, web-02) serve the Book Finder app via Nginx.
 - HAProxy handles load balancing at the LB layer.
 
