@@ -1,69 +1,94 @@
 # Book Finder App
+A simple and secure web application that allows users to search for books using the Google Books API, save favorites, and manage them across sessions. The application is built with HTML, CSS, and JavaScript, and deployed on multiple web servers behind an HAProxy Load Balancer to ensure high availability and balanced traffic distribution.
 
-A simple and secure web application that allows users to search for books using the Google Books API, save favorites, and manage them across sessions. Built with HTML, CSS, and JavaScript, deployed on multiple web servers behind a load balancer.
+## Features
+Search Functionality: Users can search for books by title, author, or keyword using the Google Books API.
 
----
+Detailed Information: View book details including author, publisher, description, and cover image.
 
-##  Features
-- Search for books by title, author, or keyword
-- View detailed book information (author, publisher, description, cover image)
-- Save and remove favorites
-- Responsive design for desktop and mobile
-- Secure API key management using `.gitignore`
+Favorite Management: Ability to save and remove books from a favorites list across sessions.
 
----
+Responsive Design: Optimized layout for seamless use on desktop and mobile devices.
 
-##  Running Locally
+Secure API Key Management: Google Books API key is managed securely using server-side configuration and .gitignore.
 
-### Prerequisites
-- Git
-- A modern browser (Chrome, Firefox, Edge)
-- Node.js (optional, if you want to run a local server)
+## Running Locally
+Prerequisites
+Git
 
-### Steps
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/nIgihozo/Book-Finder.git
-   cd Book-Finder
-Create a config.js file in the project root:
+A modern web browser (Chrome, Firefox, Edge)
 
-js
-const API_KEY = "your-google-books-api-key";
+Node.js (Optional, for running a simple local HTTP server)
+
+Steps
+Clone the repository:
+
+Bash
+
+git clone https://github.com/nIgihozo/Book-Finder.git
+cd Book-Finder
+Create API Configuration File: Create a file named config.js in the project root and insert your Google Books API key (this file should be ignored by Git for security):
+
+JavaScript
+
+const API_KEY = "your-google-books-api-key"; 
 export default API_KEY;
-Open index.html in your browser to start the app.
+Run the Application: Open the index.html file directly in your browser, or use a simple HTTP server (e.g., Node's serve package or Python's SimpleHTTPServer).
 
-###  Deployment to Web Servers
-On web01 and web02
-SSH into each server.
+## Deployment to Web Servers (web-01 & web-02)
+The application is served by Nginx on two backend servers (web-01 and web-02).
 
-Clone the repo into /var/www/bookfinder:
+1. Backend Server Setup (Perform on both web-01 and web-02)
+Clone the Repository: SSH into each server and clone the application into the custom Nginx root directory:
 
-bash
+Bash
+
 sudo git clone https://github.com/nIgihozo/Book-Finder.git /var/www/bookfinder
-Add your config.js file manually (not tracked in GitHub).
+Set Permissions: Ensure Nginx can read the files:
 
-Configure Nginx:
+Bash
 
-nginx
+sudo chown -R www-data:www-data /var/www/bookfinder
+Add config.js: Manually create and add the config.js file with your API key to /var/www/bookfinder/.
+
+2. Nginx Configuration
+Create the configuration file /etc/nginx/sites-available/bookfinder:
+
+Nginx
+
 server {
-  listen 80;
-  server_name <server_ip>;
-  root /var/www/bookfinder;
-  index index.html search.html favorite.html;
-  location / {
-    try_files $uri $uri/ =404;
-  }
-}
-Restart Nginx:
+    listen 80;
+    server_name <server_ip>; # Use the public IP of the web server
+    root /var/www/bookfinder;
+    index index.html search.html favorite.html;
 
-bash
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+3. Activate and Finalize Nginx
+Activate the Site: Create the symbolic link:
+
+Bash
+
+sudo ln -s /etc/nginx/sites-available/bookfinder /etc/nginx/sites-enabled/
+Disable Default Site (Crucial Fix): Remove the conflicting default configuration to prevent serving the "Welcome to Nginx" page:
+
+Bash
+
+sudo unlink /etc/nginx/sites-enabled/default
+Test and Restart:
+
+Bash
+
 sudo nginx -t
 sudo systemctl restart nginx
+## Load Balancer Setup (HAProxy)
+HAProxy is configured to listen on port 80 and distribute incoming requests across the two backend servers using the roundrobin algorithm.
 
-- On the Load Balancer
-Configured HAProxy to distribute traffic between web-01 and web-02 using round‑robin:
+HAProxy Configuration (/etc/haproxy/haproxy.cfg)
+Code snippet
 
-haproxy
 frontend bookfinder-frontend
     bind *:80
     mode http
@@ -73,66 +98,63 @@ backend bookfinder-backend
     balance roundrobin
     server web-01 <web01_ip>:80 check
     server web-02 <web02_ip>:80 check
-HAProxy listens on port 80 and forwards requests to the backend servers. This ensures high availability and balanced traffic distribution.
 
-###  APIs Used
-Google Books API Official docs: https://developers.google.com/books Used to fetch book data by title, author, or keyword.
+Verify and Restart HAProxy
+Bash
 
-###  Challenges & Solutions
-- API Key Security: Avoided exposing keys by using .gitignore and manual server-side config.
+sudo haproxy -c -f /etc/haproxy/haproxy.cfg
+sudo systemctl restart haproxy
+##  APIs Used
+Google Books API
 
-- Deployment Errors: Fixed permission issues in /var/www by using sudo and adjusting ownership.
+Official documentation: https://developers.google.com/books
 
-- On the Load Balancer refuse to run in the web browser
-Load Balancer Access: Couldn’t SSH into the school‑managed LB externally, so functionality was verified directly on the server via HTTP and logs.
+Usage: Used to fetch book data by title, author, or keyword, displaying the results to the user.
 
-Commands used to check if load balancer is working
-bash
-curl -I http://localhost
-Output alternates between:
+Challenges & Solutions
+HAProxy Startup Failure
 
-#### Code
-ubuntu@6904-lb-01:~$ curl -I http://localhost
-HTTP/1.1 200 OK
-server: nginx/1.18.0 (Ubuntu)
-date: Tue, 25 Nov 2025 22:54:01 GMT
-content-type: text/html
-content-length: 612
-last-modified: Sat, 08 Nov 2025 09:18:25 GMT
-etag: "690f0ae1-264"
-x-served-by: 6904-web-02
-accept-ranges: bytes
+Encountered: The HAProxy service failed to start due to overly verbose and conflicting settings inherited from the default global section (e.g., unnecessary stats socket, chroot, and default SSL directives).
 
-ubuntu@6904-lb-01:~$ curl -I http://localhost
-HTTP/1.1 200 OK
-server: nginx/1.18.0 (Ubuntu)
-date: Tue, 25 Nov 2025 22:54:07 GMT
-content-type: text/html
-content-length: 30
-last-modified: Fri, 07 Nov 2025 13:10:30 GMT
-etag: "690defc6-1e"
-x-served-by: 6904-web-01
-accept-ranges: bytes
+Solution: Simplified the global section of the HAProxy configuration to its minimum required directives (log, daemon, maxconn). This allowed the service to initialize and run correctly.
 
-- Deadline Pressure: Streamlined deployment to servers + HAProxy configs to minimize manual steps.
-- Backend servers (web-01, web-02) serve the Book Finder app via Nginx.
-- HAProxy handles load balancing at the LB layer.
+Inconsistent Backend Response
 
-### Credits
-Google Books API developers for providing free access to book data.
+Encountered: The Load Balancer served inconsistent HTML—sometimes the Book Finder app, and other times the "Welcome to Nginx" default page—because of the roundrobin balancing algorithm hitting different server states.
 
-HAProxy for load balancing and traffic distribution.
+Solution: The issue was resolved by two clean-up steps on both backend servers:
 
-Nginx on backend servers for serving static files.
+Removal: Deleted the conflicting default Nginx files (/var/www/html/index.nginx-debian.html).
 
-School infrastructure team for providing servers and load balancer setup.
+Disabling: Unlinked the default Nginx configuration (sudo unlink /etc/nginx/sites-enabled/default). This forced Nginx to respect only the dedicated bookfinder configuration on Port 80.
+
+External Browser Access
+
+Encountered: After fixing all server-side issues (backend Nginx and HAProxy), the local browser continued to show "Site can't be reached", even though curl from the client machine was successful.
+
+Solution: The issue was aggressive browser caching of the initial connection failure. Verified functionality by using an Incognito Window and advising a hard refresh to force the browser to establish a fresh connection.
+
+Load Balancer Verification Command
+The following command, run from the client machine, successfully confirmed the final operational state of the load balancer:
+
+Bash
+
+curl http://18.206.40.183 
+### Output now consistently returns the full HTML for the Book Finder application.
+## Credits
+Google Books API developers for providing free and reliable access to book data.
+
+HAProxy for load balancing and high availability traffic distribution.
+
+Nginx on backend servers for efficient static file serving.
 
 Open-source community for documentation and troubleshooting resources.
 
-### Demo Video
-- Demo Video: https://youtu.be/eFQ4ngOELJQ?si=v-9YlwZDZwbXdNUU
-  
-### Web server links
-- Link 1 : http://3.84.38.154/  (Web-server 01)
-- Link 2 : http://3.87.54.183/  (Web-server 02)
-  
+## Demo Video
+- Demo Video: https://youtu.be/eFQ4ngOELJQ?si=v-9YlwZDzwbXdNUU
+
+## Web Server Links (For direct access verification)
+
+- Link 1 (Web-server 01): http://3.84.38.154/
+- Link 2 (Web-server 02): http://3.87.54.183/
+- Link 3 (Lb-server 01):  http://18.206.40.183/ 
